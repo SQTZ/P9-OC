@@ -3,7 +3,8 @@
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
     <url>
         <loc>https://sqtz.github.io/P9-OC/index.html</loc>
-        <lastmod>{{ date('2023-05-27') }}</lastmod>
+        <lastmod>2023-05-27</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
+</urlset>
