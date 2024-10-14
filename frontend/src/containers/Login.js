@@ -1,4 +1,3 @@
-
 import { ROUTES_PATH } from '../constants/routes.js'
 export let PREVIOUS_LOCATION = ''
 
@@ -10,10 +9,18 @@ export default class Login {
     this.onNavigate = onNavigate
     this.PREVIOUS_LOCATION = PREVIOUS_LOCATION
     this.store = store
-    const formEmployee = this.document.querySelector(`form[data-testid="form-employee"]`)
-    formEmployee.addEventListener("submit", this.handleSubmitEmployee)
-    const formAdmin = this.document.querySelector(`form[data-testid="form-admin"]`)
-    formAdmin.addEventListener("submit", this.handleSubmitAdmin)
+
+    // Correction pour ajouter des écouteurs d'événements uniquement si les éléments existent
+    const formEmployee = this.document.querySelector(`form[data-testid="form-employee"]`);
+    if (formEmployee) {
+      formEmployee.addEventListener("submit", this.handleSubmitEmployee);
+    }
+
+    const formAdmin = this.document.querySelector(`form[data-testid="form-admin"]`);
+    if (formAdmin) {
+      formAdmin.addEventListener("submit", this.handleSubmitAdmin);
+    }
+    
   }
   handleSubmitEmployee = e => {
     e.preventDefault()
@@ -34,15 +41,15 @@ export default class Login {
         PREVIOUS_LOCATION = this.PREVIOUS_LOCATION
         this.document.body.style.backgroundColor="#fff"
       })
-
   }
 
   handleSubmitAdmin = e => {
     e.preventDefault()
     const user = {
       type: "Admin",
-      email: e.target.querySelector(`input[data-testid="employee-email-input"]`).value,
-      password: e.target.querySelector(`input[data-testid="employee-password-input"]`).value,
+      //Correction de la variable admin-email-input
+      email: e.target.querySelector(`input[data-testid="admin-email-input"]`).value,
+      password: e.target.querySelector(`input[data-testid="admin-password-input"]`).value,
       status: "connected"
     }
     this.localStorage.setItem("user", JSON.stringify(user))
