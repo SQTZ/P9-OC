@@ -9,36 +9,44 @@ export default class NewBill {
     const formNewBill = this.document.querySelector(`form[data-testid="form-new-bill"]`)
     formNewBill.addEventListener("submit", this.handleSubmit)
     const file = this.document.querySelector(`input[data-testid="file"]`)
-    file.addEventListener("change", this.handleChangeFile)
+    file.addEventListener("change", this.handleChangeFile.bind(this)) // Ensure binding
     this.fileUrl = null
     this.fileName = null
     this.billId = null
     new Logout({ document, localStorage, onNavigate })
   }
-  handleChangeFile = e => {
-    e.preventDefault()
-    const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
-    const filePath = e.target.value.split(/\\/g)
-    const fileName = filePath[filePath.length-1]
-    const formData = new FormData()
-    const email = JSON.parse(localStorage.getItem("user")).email
-    formData.append('file', file)
-    formData.append('email', email)
 
-    this.store
-      .bills()
-      .create({
+  handleChangeFile = async (e) => {
+    e.preventDefault()
+    const file = e.target.files[0]
+    const fileName = file.name
+
+    const fileType = file.type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    if (!validTypes.includes(fileType)) {
+      alert('Please upload file having extensions .jpeg/.jpg/.png only.')
+      e.target.value = ''
+      return
+    }
+    
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const { fileUrl, key } = await this.store.bills().create({
         data: formData,
         headers: {
           noContentType: true
         }
       })
-      .then(({fileUrl, key}) => {
-        console.log(fileUrl)
-        this.billId = key
-        this.fileUrl = fileUrl
-        this.fileName = fileName
-      }).catch(error => console.error(error))
+      this.billId = key
+      this.fileUrl = fileUrl
+      this.fileName = fileName
+    } catch(error) {
+      console.error(error)
+      e.target.value = ''
+      // Ne pas propager l'erreur, juste la logger
+    }
   }
   handleSubmit = e => {
     e.preventDefault()
