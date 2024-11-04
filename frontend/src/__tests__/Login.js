@@ -49,7 +49,7 @@ describe("Given that I am a user on login page", () => {
   });
 
   describe("When I do fill fields in correct format and I click on employee button Login In", () => {
-    test("Then I should be identified as an Employee in app", () => {
+    test("Then I should be identified as an Employee in app", async () => {
       document.body.innerHTML = LoginUI();
       const inputData = {
         email: "johndoe@email.com",
@@ -68,7 +68,6 @@ describe("Given that I am a user on login page", () => {
 
       const form = screen.getByTestId("form-employee");
 
-      // localStorage should be populated with form data
       Object.defineProperty(window, "localStorage", {
         value: {
           getItem: jest.fn(() => null),
@@ -77,14 +76,19 @@ describe("Given that I am a user on login page", () => {
         writable: true,
       });
 
-      // we have to mock navigation to test it
       const onNavigate = (pathname) => {
         document.body.innerHTML = ROUTES({ pathname });
       };
 
       let PREVIOUS_LOCATION = "";
 
-      const store = jest.fn();
+      // Mock du store avec une implémentation complète
+      const store = {
+        login: jest.fn().mockResolvedValue({ jwt: 'token' }),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
 
       const login = new Login({
         document,
@@ -95,11 +99,12 @@ describe("Given that I am a user on login page", () => {
       });
 
       const handleSubmit = jest.fn(login.handleSubmitEmployee);
-      login.login = jest.fn().mockResolvedValue({});
       form.addEventListener("submit", handleSubmit);
-      fireEvent.submit(form);
+      
+      // Soumettre le formulaire
+      await fireEvent.submit(form);
+      
       expect(handleSubmit).toHaveBeenCalled();
-      expect(window.localStorage.setItem).toHaveBeenCalled();
       expect(window.localStorage.setItem).toHaveBeenCalledWith(
         "user",
         JSON.stringify({
@@ -109,6 +114,10 @@ describe("Given that I am a user on login page", () => {
           status: "connected",
         })
       );
+      
+      // Attendre que la navigation soit effectuée
+      await new Promise(process.nextTick);
+      expect(screen.getByText("Mes notes de frais")).toBeTruthy();
     });
 
     test("It should renders Bills page", () => {
@@ -429,4 +438,83 @@ describe("Given that I am a user on login page", () => {
       expect(onNavigate).toHaveBeenCalledWith("#admin/dashboard")
     })
   })
+})
+
+describe("Given that I am a user on login page", () => {
+  describe("When using login and createUser methods", () => {
+    test("Then login should handle null store", () => {
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store: null
+      });
+
+      const result = login.login({});
+      expect(result).toBeNull();
+    });
+
+    test("Then createUser should handle null store", () => {
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store: null
+      });
+
+      const result = login.createUser({});
+      expect(result).toBeNull();
+    });
+
+    test("Then login should handle store with JWT", async () => {
+      const store = {
+        login: jest.fn().mockResolvedValue({ jwt: 'fake-jwt-token' })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      await login.login({ email: 'user@test.com', password: 'password123' });
+      expect(localStorage.setItem).toHaveBeenCalledWith('jwt', 'fake-jwt-token');
+    });
+
+    test("Then createUser should create user and login", async () => {
+      const store = {
+        login: jest.fn().mockResolvedValue({ jwt: 'fake-jwt-token' }),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      const user = {
+        type: 'Employee',
+        email: 'user@test.com',
+        password: 'password123'
+      };
+
+      const consoleSpy = jest.spyOn(console, 'log');
+      await login.createUser(user);
+
+      expect(store.users().create).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(`User with ${user.email} is created`);
+      expect(store.login).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+  });
 })

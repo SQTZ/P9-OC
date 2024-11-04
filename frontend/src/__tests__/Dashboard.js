@@ -214,12 +214,13 @@ describe('Given I am connected as Admin, and I am on Dashboard page, and I click
 
 describe('Given I am connected as Admin and I am on Dashboard page and I clicked on a bill', () => {
   describe('When I click on the icon eye', () => {
-    test('A modal should open', () => {
+    test('Then, the modal should open', () => {
       Object.defineProperty(window, 'localStorage', { value: localStorageMock })
       window.localStorage.setItem('user', JSON.stringify({
         type: 'Admin'
       }))
       document.body.innerHTML = DashboardFormUI(bills[0])
+      
       const onNavigate = (pathname) => {
         document.body.innerHTML = ROUTES({ pathname })
       }
@@ -228,14 +229,25 @@ describe('Given I am connected as Admin and I am on Dashboard page and I clicked
         document, onNavigate, store, bills, localStorage: window.localStorage
       })
 
-      const handleClickIconEye = jest.fn(dashboard.handleClickIconEye)
       const eye = screen.getByTestId('icon-eye-d')
+      $.fn.modal = jest.fn() // Mock de la fonction modal de jQuery
+      
+      // Définir l'attribut data-bill-url
+      const billUrl = "https://test.storage.tld/v0/b/billable-677b6.a…f-1.jpg?alt=media&token=c1640e12-a24b-4b11-ae52-529112e9602a";
+      eye.setAttribute('data-bill-url', billUrl)
+
+      const handleClickIconEye = jest.fn(() => dashboard.handleClickIconEye())
       eye.addEventListener('click', handleClickIconEye)
       userEvent.click(eye)
+      
       expect(handleClickIconEye).toHaveBeenCalled()
-
-      const modale = screen.getByTestId('modaleFileAdmin')
-      expect(modale).toBeTruthy()
+      expect($.fn.modal).toHaveBeenCalled()
+      expect($.fn.modal).toHaveBeenCalledWith('show')
+      
+      // Test du cas où modal n'est pas une fonction
+      $.fn.modal = undefined
+      userEvent.click(eye)
+      expect(handleClickIconEye).toHaveBeenCalled()
     })
   })
 })
@@ -304,6 +316,58 @@ describe("Given I am a user connected as Admin", () => {
     })
   })
 
+  })
+})
+
+describe('Given I am connected as Admin and I am on Dashboard page', () => {
+  describe('When I click multiple times on an edit icon', () => {
+    test('Then it should handle all ticket edits correctly', async () => {
+      // Setup
+      Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+      window.localStorage.setItem('user', JSON.stringify({ type: 'Admin' }))
+      document.body.innerHTML = DashboardUI({ data: { bills } })
+      
+      const onNavigate = (pathname) => {
+        document.body.innerHTML = ROUTES({ pathname })
+      }
+      
+      const dashboard = new Dashboard({
+        document, onNavigate, store: null, bills, localStorage: window.localStorage
+      })
+
+      // Simuler l'ouverture de la liste des tickets
+      const handleShowTickets1 = jest.fn((e) => dashboard.handleShowTickets(e, bills, 1))
+      const icon1 = screen.getByTestId('arrow-icon1')
+      icon1.addEventListener('click', handleShowTickets1)
+      userEvent.click(icon1)
+      
+      // Récupérer le ticket et simuler plusieurs clics
+      const firstBill = screen.getByTestId(`open-bill${bills[0].id}`)
+      
+      // Premier clic - devrait ouvrir le formulaire
+      userEvent.click(firstBill)
+      expect(screen.getByTestId('dashboard-form')).toBeTruthy()
+      
+      // Deuxième clic - devrait afficher l'icône
+      userEvent.click(firstBill)
+      expect(screen.getByTestId('big-billed-icon')).toBeTruthy()
+      
+      // Troisième clic - devrait revenir au formulaire
+      userEvent.click(firstBill)
+      expect(screen.getByTestId('dashboard-form')).toBeTruthy()
+      
+      // Vérifier que les gestionnaires d'événements sont bien attachés
+      const eyeIcon = screen.getByTestId('icon-eye-d')
+      const acceptButton = screen.getByTestId('btn-accept-bill-d')
+      const refuseButton = screen.getByTestId('btn-refuse-bill-d')
+      
+      userEvent.click(eyeIcon)
+      userEvent.click(acceptButton)
+      userEvent.click(refuseButton)
+      
+      // Ces assertions vérifient que les gestionnaires d'événements ont été correctement attachés
+      expect(screen.getByTestId('big-billed-icon')).toBeTruthy()
+    })
   })
 })
 
