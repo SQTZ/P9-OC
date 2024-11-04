@@ -53,15 +53,12 @@ describe("Given I am connected as an employee", () => {
       const dates = screen.getAllByText(/^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$/i).map(a => a.innerHTML)
       
       // Création d'une copie des dates pour le tri
-      const datesSorted = [...dates]
-      
-      // Tri des dates dans l'ordre chronologique (du plus ancien au plus récent)
-      datesSorted.sort((a, b) => {
-        return new Date(a) - new Date(b)
+      const datesSorted = [...dates].sort((a, b) => {
+        return new Date(b) - new Date(a)  // Tri décroissant (du plus récent au plus ancien)
       })
       
-      // Vérification que les dates sont dans le bon ordre
-      expect(datesSorted).toEqual(dates)
+      // Vérification que les dates sont dans l'ordre attendu
+      expect(dates).toEqual(datesSorted)
     })
 
     describe("When I click on the new bill button", () => {

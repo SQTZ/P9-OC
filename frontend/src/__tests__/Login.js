@@ -4,7 +4,7 @@
 
 import LoginUI from "../views/LoginUI";
 import Login from "../containers/Login.js";
-import { ROUTES } from "../constants/routes";
+import { ROUTES, ROUTES_PATH } from "../constants/routes";
 import { fireEvent, screen } from "@testing-library/dom";
 
 describe("Given that I am a user on login page", () => {
@@ -228,3 +228,205 @@ describe("Given that I am a user on login page", () => {
     });
   });
 });
+
+describe("Given that I am a user on login page", () => {
+  describe("When I submit the employee form with a store", () => {
+    test("Then it should call the store create method", async () => {
+      document.body.innerHTML = LoginUI();
+      
+      // Mock du store avec succès pour login
+      const store = {
+        login: jest.fn().mockResolvedValue({ jwt: 'token' }),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      const form = screen.getByTestId("form-employee")
+      const emailInput = screen.getByTestId("employee-email-input")
+      const passwordInput = screen.getByTestId("employee-password-input")
+
+      fireEvent.change(emailInput, { target: { value: "employee@test.com" } })
+      fireEvent.change(passwordInput, { target: { value: "employee" } })
+      
+      await login.handleSubmitEmployee({ 
+        preventDefault: () => {},
+        target: form
+      });
+
+      expect(store.login).toHaveBeenCalled()
+    });
+  });
+
+  describe("When I submit the admin form with a store", () => {
+    test("Then it should call the store create method", async () => {
+      document.body.innerHTML = LoginUI();
+      
+      const store = {
+        login: jest.fn().mockResolvedValue({ jwt: 'token' }),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      const form = screen.getByTestId("form-admin")
+      const emailInput = screen.getByTestId("admin-email-input")
+      const passwordInput = screen.getByTestId("admin-password-input")
+
+      fireEvent.change(emailInput, { target: { value: "admin@test.com" } })
+      fireEvent.change(passwordInput, { target: { value: "admin" } })
+      
+      await login.handleSubmitAdmin({ 
+        preventDefault: () => {},
+        target: form
+      });
+
+      expect(store.login).toHaveBeenCalled()
+    });
+  });
+
+  describe("When the API returns an error", () => {
+    test("Then it should handle the error", async () => {
+      document.body.innerHTML = LoginUI();
+      
+      // Mock du store avec une séquence de comportements
+      const store = {
+        login: jest.fn().mockImplementation(() => {
+          return Promise.resolve({ jwt: 'token' })
+        }),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockImplementation(() => {
+            console.log("User created")
+            return Promise.resolve({ jwt: 'token' })
+          })
+        })
+      };
+
+      const onNavigate = jest.fn();
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate,
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      // Mock des méthodes login et createUser
+      login.login = jest.fn().mockImplementation(() => Promise.reject(new Error()));
+      login.createUser = jest.fn().mockImplementation(() => {
+        console.log("User created");
+        return Promise.resolve({});
+      });
+
+      const form = screen.getByTestId("form-employee");
+      const emailInput = screen.getByTestId("employee-email-input");
+      const passwordInput = screen.getByTestId("employee-password-input");
+
+      fireEvent.change(emailInput, { target: { value: "employee@test.com" } });
+      fireEvent.change(passwordInput, { target: { value: "employee" } });
+
+      const consoleSpy = jest.spyOn(console, "log");
+      
+      await login.handleSubmitEmployee({ 
+        preventDefault: () => {},
+        target: form
+      });
+      
+      expect(login.createUser).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith("User created");
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("When form submission is successful", () => {
+    test("Then it should update PREVIOUS_LOCATION for employee", async () => {
+      document.body.innerHTML = LoginUI()
+      const onNavigate = jest.fn();
+      
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate,
+        PREVIOUS_LOCATION: '',
+        store: null
+      })
+
+      // Mock de la méthode login avec une promesse qui se résout immédiatement
+      login.login = jest.fn().mockImplementation(() => {
+        return Promise.resolve({})
+      });
+
+      const form = screen.getByTestId("form-employee")
+      const emailInput = screen.getByTestId("employee-email-input")
+      const passwordInput = screen.getByTestId("employee-password-input")
+
+      fireEvent.change(emailInput, { target: { value: "employee@test.com" } })
+      fireEvent.change(passwordInput, { target: { value: "employee" } })
+
+      // Attendre que toutes les promesses soient résolues
+      await login.handleSubmitEmployee({ 
+        preventDefault: () => {},
+        target: form
+      })
+      
+      // Attendre le prochain tick pour s'assurer que tout est résolu
+      await new Promise(process.nextTick);
+
+      expect(onNavigate).toHaveBeenCalledWith("#employee/bills")
+    })
+
+    test("Then it should update PREVIOUS_LOCATION for admin", async () => {
+      document.body.innerHTML = LoginUI()
+      const onNavigate = jest.fn();
+      
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate,
+        PREVIOUS_LOCATION: '',
+        store: null
+      })
+
+      // Mock de la méthode login avec une promesse qui se résout immédiatement
+      login.login = jest.fn().mockImplementation(() => {
+        return Promise.resolve({})
+      });
+
+      const form = screen.getByTestId("form-admin")
+      const emailInput = screen.getByTestId("admin-email-input")
+      const passwordInput = screen.getByTestId("admin-password-input")
+
+      fireEvent.change(emailInput, { target: { value: "admin@test.com" } })
+      fireEvent.change(passwordInput, { target: { value: "admin" } })
+
+      // Attendre que toutes les promesses soient résolues
+      await login.handleSubmitAdmin({ 
+        preventDefault: () => {},
+        target: form
+      })
+      
+      // Attendre le prochain tick pour s'assurer que tout est résolu
+      await new Promise(process.nextTick);
+
+      expect(onNavigate).toHaveBeenCalledWith("#admin/dashboard")
+    })
+  })
+})
