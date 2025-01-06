@@ -518,3 +518,67 @@ describe("Given that I am a user on login page", () => {
     });
   });
 })
+
+describe("Given I am a user on login page", () => {
+  describe("When I submit the form with invalid credentials", () => {
+    test("Then it should create a new user when login fails", async () => {
+      document.body.innerHTML = LoginUI()
+      
+      // Mock du localStorage
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: jest.fn(() => null),
+          setItem: jest.fn(() => null),
+        },
+        writable: true
+      })
+
+      // Mock du store avec un échec de login mais un succès de création
+      const store = {
+        login: jest.fn().mockImplementation(() => Promise.reject(new Error())),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      }
+
+      const onNavigate = jest.fn()
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate,
+        PREVIOUS_LOCATION: '',
+        store
+      })
+
+      // Simuler la soumission du formulaire
+      const form = screen.getByTestId("form-employee")
+      const emailInput = screen.getByTestId("employee-email-input")
+      const passwordInput = screen.getByTestId("employee-password-input")
+
+      fireEvent.change(emailInput, { target: { value: "employee@test.tld" } })
+      fireEvent.change(passwordInput, { target: { value: "employee" } })
+
+      // Espionner la méthode createUser
+      const createUserSpy = jest.spyOn(login, 'createUser')
+        .mockImplementation(() => Promise.resolve({}))
+
+      // Soumettre le formulaire
+      login.handleSubmitEmployee({ 
+        preventDefault: () => {},
+        target: form
+      })
+
+      // Attendre que les promesses soient résolues
+      await new Promise(process.nextTick)
+
+      // Vérifier que createUser a été appelé avec les bons paramètres
+      expect(createUserSpy).toHaveBeenCalledWith({
+        type: "Employee",
+        email: "employee@test.tld",
+        password: "employee",
+        status: "connected"
+      })
+    })
+  })
+})

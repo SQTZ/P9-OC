@@ -34,30 +34,25 @@ export default class {
 
   getBills = () => {
     if (this.store) {
-      return this.store
-      .bills()
-      .list()
-      .then(snapshot => {
+      return this.store.bills().list().then(snapshot => {
         const bills = snapshot
           .map(doc => {
             try {
               return {
                 ...doc,
-                date: formatDate(doc.date), // Ensure this returns a valid date string
+                date: formatDate(doc.date),
                 status: formatStatus(doc.status)
               }
             } catch(e) {
-              console.log(e, 'for', doc)
+              console.log(e,'for',doc)
               return {
                 ...doc,
-                date: doc.date, // Fallback to original date if formatting fails
+                date: doc.date,
                 status: formatStatus(doc.status)
               }
             }
           })
-          // Sort bills by date in ascending order (earliest to latest)
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-        console.log('length', bills.length)
+          .sort((a, b) => new Date(a.date) - new Date(b.date)) // Tri par date croissant
         return bills
       })
     }
