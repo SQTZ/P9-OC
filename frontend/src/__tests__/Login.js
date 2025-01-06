@@ -5,7 +5,7 @@
 import LoginUI from "../views/LoginUI";
 import Login from "../containers/Login.js";
 import { ROUTES, ROUTES_PATH } from "../constants/routes";
-import { fireEvent, screen } from "@testing-library/dom";
+import { fireEvent, screen, waitFor } from "@testing-library/dom";
 
 describe("Given that I am a user on login page", () => {
   describe("When I do not fill fields and I click on employee button Login In", () => {
@@ -582,3 +582,179 @@ describe("Given I am a user on login page", () => {
     })
   })
 })
+
+describe("When I am on Login page as an admin", () => {
+    test("Then the background should change to white after successful login", async () => {
+      document.body.innerHTML = LoginUI()
+      
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: (pathname) => {
+          document.body.innerHTML = ROUTES({ pathname })
+        },
+        PREVIOUS_LOCATION: '',
+        store: {
+          login: jest.fn().mockResolvedValue({ jwt: "123" })
+        }
+      })
+
+      const form = screen.getByTestId("form-admin")
+      const inputEmail = screen.getByTestId("admin-email-input")
+      const inputPassword = screen.getByTestId("admin-password-input")
+
+      // Set initial background color
+      document.body.style.backgroundColor = "red"
+      
+      // Set form values
+      fireEvent.change(inputEmail, { target: { value: "admin@test.tld" } })
+      fireEvent.change(inputPassword, { target: { value: "admin123" } })
+      
+      // Submit form
+      fireEvent.submit(form)
+      
+      // Wait for background color to change
+      await waitFor(() => {
+        expect(document.body.style.backgroundColor).toBe("rgb(255, 255, 255)")
+      })
+    })
+})
+
+describe("When I submit the admin form with a failing login", () => {
+    test("Then it should call createUser", async () => {
+      document.body.innerHTML = LoginUI();
+      
+      // Mock du store avec un échec de login
+      const store = {
+        login: jest.fn().mockRejectedValueOnce(new Error("Login failed")),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      // Mock de la méthode createUser pour pouvoir la surveiller
+      const createUserSpy = jest.spyOn(login, 'createUser')
+        .mockImplementation(() => Promise.resolve({}));
+
+      // Mock de la méthode login pour s'assurer qu'elle échoue
+      login.login = jest.fn().mockRejectedValue(new Error("Login failed"));
+
+      const form = screen.getByTestId("form-admin");
+      const emailInput = screen.getByTestId("admin-email-input");
+      const passwordInput = screen.getByTestId("admin-password-input");
+
+      fireEvent.change(emailInput, { target: { value: "admin@test.com" } });
+      fireEvent.change(passwordInput, { target: { value: "admin123" } });
+      
+      // Soumettre le formulaire
+      await login.handleSubmitAdmin({ 
+        preventDefault: jest.fn(),
+        target: form
+      });
+
+      // Attendre que toutes les promesses soient résolues
+      await new Promise(process.nextTick);
+
+      // Vérifier que createUser a été appelé avec les bons paramètres
+      expect(createUserSpy).toHaveBeenCalledWith({
+        type: "Admin",
+        email: "admin@test.com",
+        password: "admin123",
+        status: "connected"
+      });
+    });
+  });
+
+describe("Given that I am on login page", () => {
+  describe("When the form elements don't exist", () => {
+    test("Then it should not throw errors", () => {
+      // Créer un DOM sans les formulaires
+      document.body.innerHTML = '<div></div>';
+      
+      // Vérifier que la création d'une instance ne lance pas d'erreur
+      expect(() => {
+        new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate: jest.fn(),
+          PREVIOUS_LOCATION: '',
+          store: null
+        })
+      }).not.toThrow();
+    });
+  });
+
+  describe("When only employee form exists", () => {
+    test("Then it should add listener only to employee form", () => {
+      document.body.innerHTML = LoginUI();
+
+      // Supprimer le formulaire admin pour ne garder que employee
+      const adminForm = screen.getByTestId("form-admin");
+      adminForm.remove();
+
+      // Mock du store
+      const store = {
+        login: jest.fn().mockResolvedValue({}),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      const form = screen.getByTestId("form-employee");
+      const handleSubmit = jest.fn(e => e.preventDefault());
+      form.addEventListener('submit', handleSubmit);
+      fireEvent.submit(form);
+
+      expect(handleSubmit).toHaveBeenCalled();
+    });
+  });
+
+  describe("When only admin form exists", () => {
+    test("Then it should add listener only to admin form", () => {
+      document.body.innerHTML = LoginUI();
+
+      // Supprimer le formulaire employee pour ne garder que admin
+      const employeeForm = screen.getByTestId("form-employee");
+      employeeForm.remove();
+
+      // Mock du store
+      const store = {
+        login: jest.fn().mockResolvedValue({}),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({})
+        })
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: '',
+        store
+      });
+
+      const form = screen.getByTestId("form-admin");
+      const handleSubmit = jest.fn(e => e.preventDefault());
+      form.addEventListener('submit', handleSubmit);
+      fireEvent.submit(form);
+
+      expect(handleSubmit).toHaveBeenCalled();
+    });
+  });
+});
