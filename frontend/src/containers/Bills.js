@@ -7,12 +7,29 @@ export default class {
     this.document = document
     this.onNavigate = onNavigate
     this.store = store
-    const buttonNewBill = document.querySelector(`button[data-testid="btn-new-bill"]`)
-    if (buttonNewBill) buttonNewBill.addEventListener('click', this.handleClickNewBill)
-    const iconEye = document.querySelectorAll(`div[data-testid="icon-eye"]`)
-    if (iconEye) iconEye.forEach(icon => {
-      icon.addEventListener('click', () => this.handleClickIconEye(icon))
-    })
+    
+    // Attacher les événements après un court délai pour s'assurer que le DOM est prêt
+    setTimeout(() => {
+      console.log('Attaching events to Bills UI elements')
+      const buttonNewBill = document.querySelector(`button[data-testid="btn-new-bill"]`)
+      if (buttonNewBill) {
+        console.log('Found new bill button, attaching click event')
+        buttonNewBill.addEventListener('click', this.handleClickNewBill)
+      } else {
+        console.warn('New bill button not found in the DOM')
+      }
+      
+      const iconEye = document.querySelectorAll(`div[data-testid="icon-eye"]`)
+      if (iconEye && iconEye.length > 0) {
+        console.log(`Found ${iconEye.length} eye icons, attaching click events`)
+        iconEye.forEach(icon => {
+          icon.addEventListener('click', () => this.handleClickIconEye(icon))
+        })
+      } else {
+        console.warn('No eye icons found in the DOM')
+      }
+    }, 100)
+    
     new Logout({ document, localStorage, onNavigate })
   }
 
@@ -52,7 +69,9 @@ export default class {
               }
             }
           })
-          .sort((a, b) => new Date(a.date) - new Date(b.date)) // Tri par date croissant
+          .sort((a, b) => new Date(b.date) < new Date(a.date) ? 1 : -1) // Tri par date décroissante
+        
+        console.log('Bills retrieved:', bills) // Ajout de log pour déboguer
         return bills
       })
     }

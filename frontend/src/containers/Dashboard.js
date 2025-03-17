@@ -131,13 +131,15 @@ export default class {
   }
 
   handleShowTickets(e, bills, index) {
-    // Vérifie si l'index actuel est différent de l'index précédent
-    if (this.index !== index) {
-      this.counter = 0; // Réinitialise le compteur lors du changement de liste
-    }
-    this.index = index; // Met à jour l'index actuel
+    if (this.index === undefined) this.index = 0
+    
+    // Stocke l'état précédent du compteur pour cet index
+    if (!this.counters) this.counters = {}
+    if (this.counters[index] === undefined) this.counters[index] = 0
+    
+    this.index = index
 
-    if (this.counter % 2 === 0) {
+    if (this.counters[index] % 2 === 0) {
       // Ouvre la liste et affiche les factures filtrées
       $(`#arrow-icon${this.index}`).css({ transform: 'rotate(0deg)'})
       $(`#status-bills-container${this.index}`)
@@ -148,10 +150,9 @@ export default class {
       $(`#status-bills-container${this.index}`)
         .html("")
     }
-    this.counter++;
+    this.counters[index]++;
 
     // S'assure que chaque événement de clic sur une facture est correctement configuré
-    // Supprime tout gestionnaire de clic existant avant d'en ajouter un nouveau
     bills.forEach(bill => {
       $(`#open-bill${bill.id}`).off('click').on('click', (e) => this.handleEditTicket(e, bill, bills))
     })
@@ -172,9 +173,11 @@ export default class {
           date: doc.date,
           status: doc.status
         }))
+        console.log('Admin bills retrieved:', bills)
         return bills
       })
       .catch(error => {
+        console.error('Error fetching admin bills:', error)
         throw error;
       })
     }

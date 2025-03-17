@@ -20,6 +20,7 @@ const row = (bill) => {
   }
 
 const rows = (data) => {
+  console.log('Rendering rows with data:', data)
   return (data && data.length) ? data.map(bill => row(bill)).join("") : ""
 }
 
@@ -47,6 +48,13 @@ export default ({ data: bills, loading, error }) => {
   } else if (error) {
     return ErrorPage(error)
   }
+  
+  if (!bills) {
+    console.error('No bills data available')
+    return ErrorPage('Aucune donnée disponible')
+  }
+  
+  console.log('Rendering BillsUI with data:', bills)
   
   return (`
     <div class='layout'>
