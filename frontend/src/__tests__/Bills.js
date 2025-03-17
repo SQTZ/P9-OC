@@ -41,7 +41,6 @@ describe("Given I am connected as an employee", () => {
       window.onNavigate(ROUTES_PATH.Bills)
       await waitFor(() => screen.getByTestId('icon-window'))
       const windowIcon = screen.getByTestId('icon-window')
-      //to-do write expect expression
       expect(windowIcon.classList.contains('active-icon')).toBe(true)
     })
 
@@ -282,10 +281,7 @@ describe("Given I am connected as an employee", () => {
         // Vérifie que console.log a été appelé pour les dates invalides
         expect(console.log).toHaveBeenCalled()
         
-        // CHANGEMENT 3 : Simplification de la vérification
-        // Au lieu de vérifier avec .some(), on extrait d'abord toutes les dates
-        // puis on vérifie la présence des dates invalides avec .toContain()
-        // C'est plus lisible et plus direct
+        // Vérifier que les dates invalides sont présentes dans le résultat
         const dates = result.map(bill => bill.date)
         expect(dates).toContain('not-a-date')
         expect(dates).toContain('invalid')

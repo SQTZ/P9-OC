@@ -1,3 +1,4 @@
+
 const jsonOrThrowIfError = async (response) => {
   if(!response.ok) throw new Error((await response.json()).message)
   return response.json()
@@ -51,26 +52,11 @@ class ApiEntity {
   }
 }
 
+
+
 class Store {
   constructor() {
-    // Vérifier si le serveur est accessible sur le port 5678
-    fetch('http://localhost:5678/ping')
-      .then(response => {
-        console.log('API server is accessible on port 5678')
-      })
-      .catch(error => {
-        console.error('API server is not accessible on port 5678:', error)
-        // Essayer le port alternatif 3000
-        fetch('http://localhost:3000/ping')
-          .then(() => {
-            console.log('API server is accessible on port 3000, switching to it')
-            this.api = new Api({baseUrl: 'http://localhost:3000'})
-          })
-          .catch(e => console.error('API server is not accessible on port 3000 either:', e))
-      })
-    
     this.api = new Api({baseUrl: 'http://localhost:5678'})
-    console.log('Store initialized with API URL:', 'http://localhost:5678')
   }
 
   user = uid => (new ApiEntity({key: 'users', api: this.api})).select({selector: uid})

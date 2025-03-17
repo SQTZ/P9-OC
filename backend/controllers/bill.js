@@ -1,9 +1,26 @@
 const { Bill } = require('../models');
 
-const getFileURL = (filePath) => `http://localhost:5678/${filePath}`;
+/**
+ * Génère l'URL complète d'un fichier à partir de son chemin
+ * @param {string} filePath - Chemin du fichier
+ * @returns {string|null} - URL complète ou null si le chemin est invalide
+ */
+const getFileURL = (filePath) => {
+  if (!filePath || filePath === 'null') return null;
+  if (filePath.startsWith('http')) return filePath;
+  return `http://localhost:5678/${filePath}`;
+};
 
+/**
+ * Vérifie si le type MIME correspond à une image
+ * @param {string} mimeType - Type MIME du fichier
+ * @returns {boolean} - true si c'est une image, false sinon
+ */
 const isPicture = (mimeType) => ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'].includes(mimeType);
 
+/**
+ * Crée une nouvelle note de frais
+ */
 const create = async (req, res) => {
   const { user } = req;
   if (!user) return res.status(401).send({ message: 'user must be authenticated' });
@@ -19,9 +36,13 @@ const create = async (req, res) => {
       status,
       commentAdmin,
       amount,
+      fileUrl,
+      fileName,
     } = req.body;
     const { file } = req;
-    const bill = await Bill.create({
+
+    // Préparation des données de base de la note de frais
+    const billData = {
       name,
       type,
       email,
@@ -31,16 +52,36 @@ const create = async (req, res) => {
       commentary,
       status,
       commentAdmin,
-      fileName: isPicture(file.mimetype) ? file.originalname : 'null',
-      filePath: isPicture(file.mimetype) ? file.path : 'null',
       amount,
-    });
+    };
+    // Cas 1: Traitement avec un fichier joint
+    if (file) {
+      billData.fileName = isPicture(file.mimetype) ? file.originalname : 'null';
+      billData.filePath = isPicture(file.mimetype) ? file.path : 'null';
+      const bill = await Bill.create(billData);
+      return res.status(201).json({
+        fileUrl: getFileURL(billData.filePath),
+        key: bill.key,
+      });
+    }
+    // Cas 2: Traitement avec une URL de fichier existante
+    if (fileName && fileUrl) {
+      billData.fileName = fileName;
+      billData.filePath = fileUrl;
+      const bill = await Bill.create(billData);
+      return res.status(201).json(bill);
+    }
+    // Cas 3: Création sans fichier
+    const bill = await Bill.create(billData);
     return res.status(201).json(bill);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
 };
 
+/**
+ * Récupère une note de frais par son ID
+ */
 const get = async (req, res) => {
   const { user } = req;
   if (!user) return res.status(401).send({ message: 'user must be authenticated' });
@@ -86,6 +127,9 @@ const get = async (req, res) => {
   }
 };
 
+/**
+ * Liste toutes les notes de frais de l'utilisateur
+ */
 const list = async (req, res) => {
   const { user } = req;
   if (!user) return res.status(401).send({ message: 'user must be authenticated' });
@@ -131,6 +175,9 @@ const list = async (req, res) => {
   }
 };
 
+/**
+ * Met à jour une note de frais existante
+ */
 const update = async (req, res) => {
   const { user } = req;
   if (!user) return res.status(401).send({ message: 'user must be authenticated' });
@@ -171,6 +218,10 @@ const update = async (req, res) => {
     return res.status(500).send({ message: err.message });
   }
 };
+
+/**
+ * Supprime une note de frais
+ */
 const remove = async (req, res) => {
   const { user } = req;
   if (!user) return res.status(401).send({ message: 'user must be authenticated' });
